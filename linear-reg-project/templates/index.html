@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById("file").addEventListener("change", displayFileName);
+        });
+
+        async function trainModel() {
+            const fileInput = document.getElementById("file");
+            if (fileInput.files.length === 0) {
+                alert("Please upload a file first!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const response = await fetch("/train", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message || "Training completed!");
+        }
+
+        async function predictValue() {
+            const xValue = document.getElementById("x_value").value;
+            if (xValue === "") {
+                alert("Please enter a value for prediction!");
+                return;
+            }
+
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ x: parseFloat(xValue) })
+            });
+
+            const result = await response.json();
+            
+            console.log("Response from server:", result);
+
+            const resultElement = document.getElementById("prediction_result");
+
+            if (result.error) {
+                resultElement.innerText = "Error: " + result.error;
+                resultElement.classList.add("danger");
+                resultElement.classList.remove("success");
+            } else if (result.prediction !== undefined) {
+                resultElement.innerText = "Prediction: " + result.prediction;
+                resultElement.classList.add("success");
+                resultElement.classList.remove("danger");
+            } else {
+                resultElement.innerText = "Error: Unknown error occurred";
+                resultElement.classList.add("danger");
+                resultElement.classList.remove("success");
+            }
+        }
+
+        function displayFileName() {
+            const fileInput = document.getElementById("file");
+            const fileNameDisplay = document.getElementById("file-name");
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            } else {
+                fileNameDisplay.textContent = "No file chosen";
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Linear Regression Model Trainer & Predictor</h1>
+
+    <h2>Upload Training Data</h2>
+    <label for="file" class="custom-file-upload">Choose File</label>
+    <input type="file" id="file" accept=".csv, .xlsx, .json">
+    <span id="file-name" class="file-name-display">No file chosen</span>
+    <button onclick="trainModel()">Train Model</button>
+
+    <h2>Make a Prediction</h2>
+    <input type="number" id="x_value" placeholder="Enter value">
+    <button onclick="predictValue()">Predict</button>
+
+    <h3 id="prediction_result"></h3>
+</body>
+</html>
